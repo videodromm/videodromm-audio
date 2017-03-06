@@ -11,7 +11,7 @@
 // Log
 #include "VDLog.h"
 // UI
-#include "VDUI.h"
+#include "VDUIAudio.h"
 
 using namespace ci;
 using namespace ci::app;
@@ -34,7 +34,6 @@ public:
 	void update() override;
 	void draw() override;
 	void cleanup() override;
-	void setUIVisibility(bool visible);
 private:
 	// Settings
 	VDSettingsRef				mVDSettings;
@@ -42,8 +41,9 @@ private:
 	VDSessionRef				mVDSession;
 	// Log
 	VDLogRef					mVDLog;
-	// UI
-	VDUIRef						mVDUI;
+	// UIAudio
+	VDUIAudioRef				mUIAudio;
+
 	// handle resizing for imgui
 	void						resizeWindow();
 	bool						mIsResizing;
@@ -62,9 +62,6 @@ private:
 	string						mError;
 	// fbo
 	bool						mIsShutDown;
-	Anim<float>					mRenderWindowTimer;
-	void						positionRenderWindow();
-	bool						mFadeInDelay;
 };
 
 
@@ -74,35 +71,17 @@ void VideodrommAudioApp::setup()
 	mVDSettings = VDSettings::create();
 	// Session
 	mVDSession = VDSession::create(mVDSettings);
-	//mVDSettings->mCursorVisible = true;
-	setUIVisibility(mVDSettings->mCursorVisible);
 	mVDSession->getWindowsResolution();
-	mVDUI = VDUI::create(mVDSettings, mVDSession);
+	// UIAudio
+	mUIAudio = VDUIAudio::create(mVDSettings, mVDSession);
+	// set ui window and io events callbacks 
+	ui::connectWindow(getWindow());
+	ui::initialize();
 
-	mouseGlobal = false;
-	mFadeInDelay = true;
 	// windows
 	mIsShutDown = false;
-	mIsResizing = true;
-	mRenderWindowTimer = 0.0f;
-	timeline().apply(&mRenderWindowTimer, 1.0f, 2.0f).finishFn([&] { positionRenderWindow(); });
-
-}
-void VideodrommAudioApp::positionRenderWindow() {
-	mVDSettings->mRenderPosXY = ivec2(mVDSettings->mRenderX, mVDSettings->mRenderY);//20141214 was 0
-	setWindowPos(mVDSettings->mRenderX, mVDSettings->mRenderY);
-	setWindowSize(mVDSettings->mRenderWidth, mVDSettings->mRenderHeight);
-}
-void VideodrommAudioApp::setUIVisibility(bool visible)
-{
-	if (visible)
-	{
-		showCursor();
-	}
-	else
-	{
-		hideCursor();
-	}
+	// fps limiting
+	setFrameRate(5.0f);
 }
 void VideodrommAudioApp::fileDrop(FileDropEvent event)
 {
@@ -110,8 +89,7 @@ void VideodrommAudioApp::fileDrop(FileDropEvent event)
 }
 void VideodrommAudioApp::update()
 {
-	mVDSession->setFloatUniformValueByIndex(mVDSettings->IFPS, getAverageFps());
-	mVDSession->update();
+	mVDSession->update(1);
 }
 void VideodrommAudioApp::cleanup()
 {
@@ -160,11 +138,7 @@ void VideodrommAudioApp::keyDown(KeyEvent event)
 			// quit the application
 			quit();
 			break;
-		case KeyEvent::KEY_h:
-			// mouse cursor and ui visibility
-			mVDSettings->mCursorVisible = !mVDSettings->mCursorVisible;
-			setUIVisibility(mVDSettings->mCursorVisible);
-			break;
+
 		}
 	}
 }
@@ -175,31 +149,23 @@ void VideodrommAudioApp::keyUp(KeyEvent event)
 }
 void VideodrommAudioApp::resizeWindow()
 {
-	mVDUI->resize();
 	mVDSession->resize();
 }
 
 void VideodrommAudioApp::draw()
 {
 	gl::clear(Color::black());
-	if (mFadeInDelay) {
-		mVDSettings->iAlpha = 0.0f;
-		if (getElapsedFrames() > mVDSession->getFadeInDelay()) {
-			mFadeInDelay = false;
-			timeline().apply(&mVDSettings->iAlpha, 0.0f, 1.0f, 1.5f, EaseInCubic());
-		}
-	}
+
 
 	//gl::setMatricesWindow(toPixels(getWindowSize()),false);
-	gl::setMatricesWindow(mVDSettings->mRenderWidth, mVDSettings->mRenderHeight, false);
-	gl::draw(mVDSession->getMixTexture(), getWindowBounds());
-	getWindow()->setTitle(mVDSettings->sFps + " fps Videodromm");
+	//gl::setMatricesWindow(mVDSettings->mRenderWidth, mVDSettings->mRenderHeight, false);
+	//gl::draw(mVDSession->getMixTexture(), getWindowBounds());
+	getWindow()->setTitle(toString((int)getAverageFps()) + " fps Videodromm");
 	// imgui
 	if (!mVDSettings->mCursorVisible) return;
 
-	mVDUI->Run("UI", (int)getAverageFps());
-	if (mVDUI->isReady()) {
-	}	
+	mUIAudio->Run("Audio");
+
 }
 
 
