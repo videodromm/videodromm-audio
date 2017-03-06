@@ -43,7 +43,6 @@ private:
 	VDLogRef					mVDLog;
 	// UIAudio
 	VDUIAudioRef				mUIAudio;
-
 	// handle resizing for imgui
 	void						resizeWindow();
 	bool						mIsResizing;
@@ -157,9 +156,6 @@ void VideodrommAudioApp::draw()
 	gl::clear(Color::black());
 
 
-	//gl::setMatricesWindow(toPixels(getWindowSize()),false);
-	//gl::setMatricesWindow(mVDSettings->mRenderWidth, mVDSettings->mRenderHeight, false);
-	//gl::draw(mVDSession->getMixTexture(), getWindowBounds());
 	getWindow()->setTitle(toString((int)getAverageFps()) + " fps Videodromm");
 	// imgui
 	if (!mVDSettings->mCursorVisible) return;
