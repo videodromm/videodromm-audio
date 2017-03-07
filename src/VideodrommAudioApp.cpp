@@ -12,6 +12,8 @@
 #include "VDLog.h"
 // UI
 #include "VDUIAudio.h"
+// Websockets
+#include "VDUIWebsockets.h"
 
 using namespace ci;
 using namespace ci::app;
@@ -43,6 +45,9 @@ private:
 	VDLogRef					mVDLog;
 	// UIAudio
 	VDUIAudioRef				mUIAudio;
+
+	// UIWebsockets
+	VDUIWebsocketsRef			mUIWebsockets;
 	// handle resizing for imgui
 	void						resizeWindow();
 	bool						mIsResizing;
@@ -73,6 +78,9 @@ void VideodrommAudioApp::setup()
 	mVDSession->getWindowsResolution();
 	// UIAudio
 	mUIAudio = VDUIAudio::create(mVDSettings, mVDSession);
+	// UIWebsockets
+	mUIWebsockets = VDUIWebsockets::create(mVDSettings, mVDSession);
+
 	// set ui window and io events callbacks 
 	ui::connectWindow(getWindow());
 	ui::initialize();
@@ -80,12 +88,9 @@ void VideodrommAudioApp::setup()
 	// windows
 	mIsShutDown = false;
 	// fps limiting
-	setFrameRate(5.0f);
+	setFrameRate(10.0f);
 }
-void VideodrommAudioApp::fileDrop(FileDropEvent event)
-{
-	mVDSession->fileDrop(event);
-}
+
 void VideodrommAudioApp::update()
 {
 	mVDSession->update(1);
@@ -150,18 +155,24 @@ void VideodrommAudioApp::resizeWindow()
 {
 	mVDSession->resize();
 }
-
+void VideodrommAudioApp::fileDrop(FileDropEvent event)
+{
+	mVDSession->fileDrop(event);
+}
 void VideodrommAudioApp::draw()
 {
 	gl::clear(Color::black());
 
-
 	getWindow()->setTitle(toString((int)getAverageFps()) + " fps Videodromm");
+
 	// imgui
 	if (!mVDSettings->mCursorVisible) return;
 
+	mVDSettings->uiMargin = 3;
 	mUIAudio->Run("Audio");
-
+	// Websockets
+	mVDSettings->uiMargin += mVDSettings->uiLargeW + mVDSettings->uiMargin;
+	mUIWebsockets->Run("Websockets");
 }
 
 
